@@ -8,34 +8,53 @@ fn main() {
     let mut content = String::new();
     let _ = f.read_to_string(&mut content);
 
-    fresh_ingredients_part1(content);
+    fresh_ingredients_part2(content);
 }
 
-fn fresh_ingredients_part1(content: String) {
+fn fresh_ingredients_part2(content: String) {
     let mut ranges: Vec<(i64, i64)> = Vec::new();
-    let mut ingredient_ids: Vec<i64> = Vec::new();
+    let mut fresh_ingredients = 0;
 
     for line in content.lines() {
         let line_type = LineType::get_line_type(line);
         match line_type {
-            Some(LineType::Id) => ingredient_ids.push(line.parse::<i64>().unwrap()),
             Some(LineType::Range) => ranges.push(get_ranges(line)),
+            Some(LineType::Id) => {}
             None => {}
         }
     }
 
-    let mut fresh_ingredients = 0;
-    for ingredient_id in ingredient_ids {
-        let is_fresh = ranges
-            .iter()
-            .any(|&(start, end)| ingredient_id >= start && ingredient_id <= end);
+    ranges.sort_by_key(|&(start, _)| start);
+    let merged_ranges = merge_ranges(ranges);
 
-        if is_fresh {
-            fresh_ingredients += 1;
+    merged_ranges
+        .iter()
+        .for_each(|&(start, end)| fresh_ingredients += (end - start) + 1);
+
+    println!("{fresh_ingredients}");
+}
+
+fn merge_ranges(ranges: Vec<(i64, i64)>) -> Vec<(i64, i64)> {
+    let mut merged_ranges: Vec<(i64, i64)> = Vec::new();
+    for (new_start, new_end) in ranges {
+        let mut merged = false;
+
+        for i in 0..merged_ranges.len() {
+            let (old_start, old_end) = merged_ranges[i];
+            if old_end >= new_start {
+                merged_ranges[i] = (old_start, old_end.max(new_end));
+
+                merged = true;
+                break;
+            }
+        }
+
+        if !merged {
+            merged_ranges.push((new_start, new_end));
         }
     }
 
-    println!("{fresh_ingredients}");
+    merged_ranges
 }
 
 fn get_ranges(line: &str) -> (i64, i64) {
@@ -70,4 +89,31 @@ impl LineTypeCharacter for LineType {
 
         None
     }
+}
+
+fn fresh_ingredients_part1(content: String) {
+    let mut ranges: Vec<(i64, i64)> = Vec::new();
+    let mut ingredient_ids: Vec<i64> = Vec::new();
+
+    for line in content.lines() {
+        let line_type = LineType::get_line_type(line);
+        match line_type {
+            Some(LineType::Id) => ingredient_ids.push(line.parse::<i64>().unwrap()),
+            Some(LineType::Range) => ranges.push(get_ranges(line)),
+            None => {}
+        }
+    }
+
+    let mut fresh_ingredients = 0;
+    for ingredient_id in ingredient_ids {
+        let is_fresh = ranges
+            .iter()
+            .any(|&(start, end)| ingredient_id >= start && ingredient_id <= end);
+
+        if is_fresh {
+            fresh_ingredients += 1;
+        }
+    }
+
+    println!("{fresh_ingredients}");
 }
