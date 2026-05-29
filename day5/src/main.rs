@@ -1,0 +1,73 @@
+use std::{fs::File, io::Read};
+
+#[cfg(test)]
+mod tests;
+
+fn main() {
+    let mut f = File::open("./data/input").expect("Error reading file");
+    let mut content = String::new();
+    let _ = f.read_to_string(&mut content);
+
+    fresh_ingredients_part1(content);
+}
+
+fn fresh_ingredients_part1(content: String) {
+    let mut ranges: Vec<(i64, i64)> = Vec::new();
+    let mut ingredient_ids: Vec<i64> = Vec::new();
+
+    for line in content.lines() {
+        let line_type = LineType::get_line_type(line);
+        match line_type {
+            Some(LineType::Id) => ingredient_ids.push(line.parse::<i64>().unwrap()),
+            Some(LineType::Range) => ranges.push(get_ranges(line)),
+            None => {}
+        }
+    }
+
+    let mut fresh_ingredients = 0;
+    for ingredient_id in ingredient_ids {
+        let is_fresh = ranges
+            .iter()
+            .any(|&(start, end)| ingredient_id >= start && ingredient_id <= end);
+
+        if is_fresh {
+            fresh_ingredients += 1;
+        }
+    }
+
+    println!("{fresh_ingredients}");
+}
+
+fn get_ranges(line: &str) -> (i64, i64) {
+    let mut split = line.split("-");
+
+    let (start, end) = (
+        split.next().unwrap().parse::<i64>().unwrap(),
+        split.next().unwrap().parse::<i64>().unwrap(),
+    );
+
+    (start, end)
+}
+
+enum LineType {
+    Range,
+    Id,
+}
+
+trait LineTypeCharacter {
+    fn get_line_type(line: &str) -> Option<LineType>;
+}
+
+impl LineTypeCharacter for LineType {
+    fn get_line_type(line: &str) -> Option<LineType> {
+        if line.contains("-") {
+            return Some(LineType::Range);
+        }
+
+        if line.len() != 0 {
+            return Some(LineType::Id);
+        };
+
+        None
+    }
+}
