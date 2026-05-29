@@ -1,7 +1,5 @@
 use std::{collections::HashMap, fs::File, io::Read};
 
-use super::*;
-
 #[test]
 fn test_forklifts() {
     use crate::forklifts_part1;

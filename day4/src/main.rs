@@ -1,4 +1,4 @@
-use std::{fs::File, io::Read, io::prelude};
+use std::{fs::File, io::Read};
 
 #[cfg(test)]
 mod tests;
@@ -8,52 +8,68 @@ fn main() {
     let mut contents = String::new();
     let _ = f.read_to_string(&mut contents);
 
-    forklifts_part1(&contents);
+    let removed = forklifts_part2(&contents);
+    println!("{}", removed);
 }
 
-pub fn forklifts_part1(contents: &String) -> Vec<String> {
-    let map = string_to_vector(contents);
-    let mut new_map = get_empty_vector(map.len(), map[0].len());
-    let mut paper_rolls = 0;
+pub fn forklifts_part2(contents: &String) -> i32 {
+    let mut map = string_to_vector(contents);
+    let mut aux_map = string_to_vector(contents);
+    let mut any_checks_left = true;
 
-    for (i, row) in map.iter().enumerate() {
-        for (j, character) in row.iter().enumerate() {
-            let block = BlockType::get_block_type(*character)
-                .expect(format!("Unexpected character {}", character).as_str());
+    let row_count = map.len();
+    let column_count = map[0].len();
+    let mut total_paper_rolls_removed = 0;
 
-            if block == BlockType::Nothing {
-                new_map[i][j] = '.';
-                continue;
-            }
+    while any_checks_left {
+        let mut paper_rolls_removed = 0;
+        for i in 0..row_count {
+            for j in 0..column_count {
+                let character = map[i][j];
+                let block = BlockType::get_block_type(character).unwrap_or_default();
+                if block == BlockType::Nothing {
+                    continue;
+                }
 
-            new_map[i][j] = if can_paper_move(&map, i, j) {
-                paper_rolls += 1;
-                'x'
-            } else {
-                '@'
+                aux_map[i][j] = if can_paper_move(&map, i, j) {
+                    paper_rolls_removed += 1;
+                    'x'
+                } else {
+                    '@'
+                }
             }
         }
+
+        total_paper_rolls_removed += paper_rolls_removed;
+        any_checks_left = paper_rolls_removed >= 1;
+
+        update_map(&mut map, &aux_map, row_count, column_count);
+        // show_current_map(&map);
     }
 
-    println!("{}", paper_rolls);
+    return total_paper_rolls_removed;
+}
 
-    // println!("Final map:");
-    // for row in new_map {
-    //     print!("\t");
-    //     for column in row {
-    //         print!("{}", column);
-    //     }
-    //     println!();
-    // }
+fn update_map(
+    map: &mut Vec<Vec<char>>,
+    aux_map: &Vec<Vec<char>>,
+    row_count: usize,
+    column_count: usize,
+) {
+    for i in 0..row_count {
+        for j in 0..column_count {
+            map[i][j] = aux_map[i][j];
+        }
+    }
+}
 
-    let mut new_map_str: Vec<String> = Vec::new();
-    for row in new_map {
+fn show_current_map(map: &Vec<Vec<char>>) {
+    println!("-----------------------");
+    for row in map.iter() {
         let mut row_str = String::new();
         row.iter().for_each(|c| row_str += &(*c).to_string());
-        new_map_str.push(row_str);
+        println!("{}", row_str);
     }
-
-    return new_map_str;
 }
 
 fn can_paper_move(map: &Vec<Vec<char>>, i: usize, j: usize) -> bool {
@@ -88,10 +104,10 @@ fn can_paper_move(map: &Vec<Vec<char>>, i: usize, j: usize) -> bool {
 
             // println!("checking {}-{}", m_i, m_j);
 
-            let block = BlockType::get_block_type(map[m_i][m_j]).unwrap();
+            let block = BlockType::get_block_type(map[m_i][m_j]).unwrap_or_default();
             if block == BlockType::PaperRoll {
                 adjacent_paper_rolls += 1;
-                // println!("found at {}-{}", m_i, m_j);
+                // println!("found one");
             }
 
             if adjacent_paper_rolls >= 4 {
@@ -130,10 +146,11 @@ fn string_to_vector(contents: &String) -> Vec<Vec<char>> {
     return rows;
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Default)]
 enum BlockType {
-    PaperRoll,
+    #[default]
     Nothing,
+    PaperRoll,
 }
 
 trait BlockTypeCharacter {
@@ -148,4 +165,41 @@ impl BlockTypeCharacter for BlockType {
             _ => None,
         }
     }
+}
+
+pub fn forklifts_part1(contents: &String) -> Vec<String> {
+    let map = string_to_vector(contents);
+    let mut new_map = get_empty_vector(map.len(), map[0].len());
+    let mut paper_rolls = 0;
+
+    for (i, row) in map.iter().enumerate() {
+        for (j, character) in row.iter().enumerate() {
+            let block = BlockType::get_block_type(*character)
+                .expect(format!("Unexpected character {}", character).as_str());
+
+            if block == BlockType::Nothing {
+                new_map[i][j] = '.';
+                continue;
+            }
+
+            new_map[i][j] = if can_paper_move(&map, i, j) {
+                paper_rolls += 1;
+                'x'
+            } else {
+                '@'
+            }
+        }
+    }
+
+    println!("{}", paper_rolls);
+
+    let mut new_map_str: Vec<String> = Vec::new();
+    for row in new_map {
+        let mut row_str = String::new();
+        row.iter().for_each(|c| row_str += &(*c).to_string());
+        println!("{}", row_str);
+        new_map_str.push(row_str);
+    }
+
+    return new_map_str;
 }
